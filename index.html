@@ -348,6 +348,43 @@ document.getElementById("calc").onclick = () => {
   document.getElementById("output").innerHTML =
     "<b>計算ボタンが押されました</b>";
 };
+// 計算（仮）：押したことがわかる表示
+document.getElementById("calc").addEventListener("click", () => {
+  const out = document.getElementById("output");
+  out.innerHTML = "<b>計算ボタンが押されました</b>";
+});
+
+// リセット：状態を全部消して、画像を再描画
+document.getElementById("reset").addEventListener("click", () => {
+  // 状態リセット
+  mode = null;
+  calib = { p1: null, p2: null };
+  nowX = null;
+  actionLine = [];
+  safetyLine = [];
+
+  // 入力欄リセット
+  document.getElementById("pxNow").value = "";
+  document.getElementById("buf").value = "0.05";
+  document.getElementById("bufS").value = "0.05";
+  document.getElementById("rmax").value = "0.30";
+  document.getElementById("k").value = "1.5";
+
+  // 表示リセット
+  document.getElementById("output").textContent = "";
+  statusEl.textContent = "リセットしました。①キャリブ点1からやり直してください。";
+
+  // 画像が読み込み済みなら、画像だけ再描画（点・線を消す）
+  if (img && img.src) {
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+  } else {
+    // 画像がない場合は真っ白に
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+});
 
 </script>
 </body>
