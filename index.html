@@ -9,126 +9,87 @@
 /* ====== 安全装置 ====== */
 *,
 *::before,
-*::after {
-  box-sizing: border-box;
-}
+*::after { box-sizing: border-box; }
 
 /* ====== 全体 ====== */
-body {
+body{
   font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
-  margin: 16px;
-  background: #fff;
-  color: #111;
+  margin:16px;
+  background:#fff;
+  color:#111;
 }
-
-h1 {
-  font-size: 20px;
-  margin-bottom: 8px;
-}
-
-.note {
-  font-size: 12px;
-  color: #555;
-  margin-bottom: 12px;
-}
+h1{ font-size:20px; margin-bottom:8px; }
+.note{ font-size:12px; color:#555; margin-bottom:12px; }
 
 /* ====== レイアウト ====== */
-.container {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
+.container{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:16px;
 }
-
-@media (min-width: 900px) {
-  .container {
-    grid-template-columns: 420px 1fr;
-    align-items: start;
-  }
+@media (min-width:900px){
+  .container{ grid-template-columns:420px 1fr; align-items:start; }
 }
-
-.panel {
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 12px;
+.panel{
+  border:1px solid #ddd;
+  border-radius:10px;
+  padding:12px;
 }
 
 /* ====== フォーム行 ====== */
-.row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px;
-  margin-bottom: 12px;
+.row{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:6px;
+  margin-bottom:12px;
 }
-
-/* PCではラベル＋入力の2列 */
-@media (min-width: 768px) {
-  .row {
-    grid-template-columns: 160px 1fr;
-    align-items: center;
-    gap: 8px;
-  }
+@media (min-width:768px){
+  .row{ grid-template-columns:160px 1fr; align-items:center; gap:8px; }
 }
-
-.label {
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-}
+.label{ font-size:13px; font-weight:600; white-space:nowrap; }
 
 /* ====== 入力 ====== */
-input,
-select,
-button {
-  width: 100%;
-  min-height: 40px;
-  padding: 6px 8px;
-  font-size: 14px;
+input, select, button{
+  width:100%;
+  min-height:40px;
+  padding:6px 8px;
+  font-size:14px;
 }
-
-button {
-  cursor: pointer;
-}
+button{ cursor:pointer; }
 
 /* ====== ボタン群 ====== */
-.buttons {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 8px;
-  margin-bottom: 12px;
+.buttons{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
+  gap:8px;
+  margin-bottom:12px;
 }
 
 /* ====== Canvas ====== */
-canvas {
-  width: 100%;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  touch-action: none;
+canvas{
+  width:100%;
+  border:1px solid #ddd;
+  border-radius:10px;
+  touch-action:none;
 }
 
 /* ====== 出力 ====== */
-.output {
-  margin-top: 12px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 10px;
+.output{
+  margin-top:12px;
+  border:1px solid #ddd;
+  border-radius:10px;
+  padding:10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
-  white-space: pre-wrap;
+  font-size:13px;
+  white-space:pre-wrap;
 }
-
-.status {
-  font-size: 12px;
-  color: #555;
-  margin-bottom: 6px;
-}
+.status{ font-size:12px; color:#555; margin-bottom:6px; }
 </style>
 </head>
 
 <body>
 <h1>Trendline Break Helper（4Hでライン確定 → 15Mで執行）</h1>
-<div class="note">
-※ 教育・検証補助用ツールです。売買判断の最終責任は利用者にあります。
-</div>
+<div class="note">※ 教育・検証補助用ツールです。売買判断の最終責任は利用者にあります。</div>
 
 <div class="container">
   <!-- ===== 左パネル ===== -->
@@ -205,13 +166,14 @@ canvas {
     </div>
   </div>
 </div>
+
 <script>
 /* ===== Canvas & Image Load ===== */
-
 const fileInput = document.getElementById("fileInput");
 const canvas = document.getElementById("cv");
 const ctx = canvas.getContext("2d");
 const statusEl = document.getElementById("status");
+const outputEl = document.getElementById("output");
 
 let img = new Image();
 
@@ -220,172 +182,331 @@ fileInput.addEventListener("change", (e) => {
   if (!file) return;
 
   const reader = new FileReader();
-
   reader.onload = () => {
     img.onload = () => {
-      // ★超重要：canvas実サイズを画像に合わせる
       canvas.width = img.width;
       canvas.height = img.height;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0);
 
-      statusEl.textContent =
-        "画像を読み込みました。①キャリブ点1から進めてください。";
-    };
+      // 状態もリセット（画像が変わったら前提が崩れる）
+      resetState(false);
 
+      statusEl.textContent = "画像を読み込みました。①キャリブ点1から進めてください。";
+    };
     img.src = reader.result;
   };
-
   reader.readAsDataURL(file);
 });
-  // ===== 操作モード =====
+
+/* ===== 操作モード & 状態 ===== */
 let mode = null; // 'cal1','cal2','now','al','sl','px'
+let calib = { p1: null, p2: null };   // {x,y,price}
+let nowX = null;                      // number
+let actionLine = [];                  // [{x,y},{x,y}]
+let safetyLine = [];                  // [{x,y},{x,y}]
 
-// ===== 状態 =====
-let calib = { p1: null, p2: null };
-let nowX = null;
-let actionLine = [];
-let safetyLine = [];
-document.getElementById("cal1").onclick = () => {
+/* ===== ボタン：モード切替 ===== */
+document.getElementById("cal1").addEventListener("click", () => {
   mode = "cal1";
-  statusEl.textContent = "① キャリブ点1：価格軸の点をクリックしてください";
-};
-
-document.getElementById("cal2").onclick = () => {
+  statusEl.textContent = "① キャリブ点1：価格軸の点をクリック → 価格を入力";
+});
+document.getElementById("cal2").addEventListener("click", () => {
   mode = "cal2";
-  statusEl.textContent = "① キャリブ点2：別の価格軸点をクリックしてください";
-};
-
-document.getElementById("nowX").onclick = () => {
+  statusEl.textContent = "① キャリブ点2：別の価格軸点をクリック → 価格を入力";
+});
+document.getElementById("nowX").addEventListener("click", () => {
   mode = "now";
-  statusEl.textContent = "② Now位置：最新足のX位置をクリックしてください";
-};
-
-document.getElementById("al").onclick = () => {
+  statusEl.textContent = "② Now位置：最新足のX位置をクリック";
+});
+document.getElementById("al").addEventListener("click", () => {
   mode = "al";
   actionLine = [];
-  statusEl.textContent = "③ Action Line：2点クリックしてください";
-};
-
-document.getElementById("sl").onclick = () => {
+  statusEl.textContent = "③ Action Line：2点クリック（トレンドライン）";
+});
+document.getElementById("sl").addEventListener("click", () => {
   mode = "sl";
   safetyLine = [];
-  statusEl.textContent = "④ Safety Line：2点クリックしてください";
-};
-
-document.getElementById("px").onclick = () => {
+  statusEl.textContent = "④ Safety Line：2点クリック（損切り基準）";
+});
+document.getElementById("px").addEventListener("click", () => {
   mode = "px";
-  statusEl.textContent = "⑤ 現在値：終値付近をクリックしてください";
-};
+  statusEl.textContent = "⑤ 現在値：終値付近をクリック（価格目盛りの位置推奨）";
+});
+
+/* ===== 価格変換（キャリブ必須） ===== */
+function getYToPrice() {
+  if (!calib.p1 || !calib.p2) return null;
+  const denom = (calib.p2.y - calib.p1.y);
+  if (denom === 0) return null;
+  const a = (calib.p2.price - calib.p1.price) / denom;
+  const b = calib.p1.price - a * calib.p1.y;
+  return (y) => a * y + b;
+}
+function yToPrice(y) {
+  const f = getYToPrice();
+  if (!f) return NaN;
+  return f(y);
+}
+function linePriceAtX(line2pts, x) {
+  const f = getYToPrice();
+  if (!f) return NaN;
+
+  const p1 = line2pts[0], p2 = line2pts[1];
+  const dx = (p2.x - p1.x);
+  if (dx === 0) return NaN;
+
+  const m = (p2.y - p1.y) / dx;
+  const c = p1.y - m * p1.x;
+  const y = m * x + c;
+  return f(y);
+}
+
+/* ===== 再描画（画像＋ライン） ===== */
+function redrawBase() {
+  if (!img || !img.src) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0);
+
+  if (actionLine.length === 2) {
+    ctx.strokeStyle = "cyan";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(actionLine[0].x, actionLine[0].y);
+    ctx.lineTo(actionLine[1].x, actionLine[1].y);
+    ctx.stroke();
+  }
+  if (safetyLine.length === 2) {
+    ctx.strokeStyle = "orange";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(safetyLine[0].x, safetyLine[0].y);
+    ctx.lineTo(safetyLine[1].x, safetyLine[1].y);
+    ctx.stroke();
+  }
+}
+
+/* ===== 水平線描画（price -> y） ===== */
+function drawHLine(price, color, label) {
+  if (!calib.p1 || !calib.p2) return;
+
+  const denom = (calib.p2.y - calib.p1.y);
+  if (denom === 0) return;
+
+  const a = (calib.p2.price - calib.p1.price) / denom;
+  const b = calib.p1.price - a * calib.p1.y;
+  const y = (price - b) / a;
+
+  if (!Number.isFinite(y)) return;
+
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(0, y);
+  ctx.lineTo(canvas.width, y);
+  ctx.stroke();
+
+  ctx.fillStyle = color;
+  ctx.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
+  ctx.fillText(`${label}: ${price.toFixed(3)}`, 6, y - 6);
+  ctx.restore();
+}
+
+/* ===== Canvas Click：点取得 ===== */
 canvas.addEventListener("click", (e) => {
   if (!mode) return;
+  if (!img || !img.src) {
+    statusEl.textContent = "先に画像をアップロードしてください。";
+    return;
+  }
 
   const rect = canvas.getBoundingClientRect();
   const x = (e.clientX - rect.left) * (canvas.width / rect.width);
   const y = (e.clientY - rect.top) * (canvas.height / rect.height);
 
+  // 点の可視化
   ctx.fillStyle = "yellow";
   ctx.beginPath();
   ctx.arc(x, y, 5, 0, Math.PI * 2);
   ctx.fill();
 
   if (mode === "cal1") {
-    const price = prompt("キャリブ点1の価格を入力");
-    if (price !== null) calib.p1 = { x, y, price: Number(price) };
-    statusEl.textContent = "キャリブ点1を設定しました";
+    const price = prompt("キャリブ点1の価格を入力（例：155.916）");
+    if (price !== null && price !== "" && !Number.isNaN(Number(price))) {
+      calib.p1 = { x, y, price: Number(price) };
+      statusEl.textContent = "キャリブ点1を設定しました";
+    } else {
+      statusEl.textContent = "価格が不正だったため、キャリブ点1は未設定です";
+    }
     mode = null;
-  }
 
-  else if (mode === "cal2") {
-    const price = prompt("キャリブ点2の価格を入力");
-    if (price !== null) calib.p2 = { x, y, price: Number(price) };
-    statusEl.textContent = "キャリブ点2を設定しました";
+  } else if (mode === "cal2") {
+    const price = prompt("キャリブ点2の価格を入力（例：156.680）");
+    if (price !== null && price !== "" && !Number.isNaN(Number(price))) {
+      calib.p2 = { x, y, price: Number(price) };
+      statusEl.textContent = "キャリブ点2を設定しました";
+    } else {
+      statusEl.textContent = "価格が不正だったため、キャリブ点2は未設定です";
+    }
     mode = null;
-  }
 
-  else if (mode === "now") {
+  } else if (mode === "now") {
     nowX = x;
     statusEl.textContent = "Now位置を設定しました";
     mode = null;
-  }
 
-  else if (mode === "al") {
+  } else if (mode === "al") {
     actionLine.push({ x, y });
     if (actionLine.length === 2) {
-      ctx.strokeStyle = "cyan";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(actionLine[0].x, actionLine[0].y);
-      ctx.lineTo(actionLine[1].x, actionLine[1].y);
-      ctx.stroke();
+      redrawBase(); // 画像＋既存ライン再描画
       statusEl.textContent = "Action Line を設定しました";
       mode = null;
     }
-  }
 
-  else if (mode === "sl") {
+  } else if (mode === "sl") {
     safetyLine.push({ x, y });
     if (safetyLine.length === 2) {
-      ctx.strokeStyle = "orange";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(safetyLine[0].x, safetyLine[0].y);
-      ctx.lineTo(safetyLine[1].x, safetyLine[1].y);
-      ctx.stroke();
+      redrawBase();
       statusEl.textContent = "Safety Line を設定しました";
       mode = null;
     }
-  }
 
-  else if (mode === "px") {
-    document.getElementById("pxNow").value = "(クリック値)";
-    statusEl.textContent = "現在値を取得しました";
+  } else if (mode === "px") {
+    if (!calib.p1 || !calib.p2) {
+      statusEl.textContent = "現在値クリックには、先にキャリブ点1/2が必要です。";
+      mode = null;
+      return;
+    }
+    const px = yToPrice(y);
+    document.getElementById("pxNow").value = px.toFixed(3);
+    statusEl.textContent = "現在値を設定しました（クリックしたYを価格換算）";
     mode = null;
   }
 });
-document.getElementById("calc").onclick = () => {
-  document.getElementById("output").innerHTML =
-    "<b>計算ボタンが押されました</b>";
-};
-// 計算（仮）：押したことがわかる表示
+
+/* ===== 計算（完成形） ===== */
 document.getElementById("calc").addEventListener("click", () => {
-  const out = document.getElementById("output");
-  out.innerHTML = "<b>計算ボタンが押されました</b>";
+  if (!img || !img.src) {
+    outputEl.innerHTML = "<span style='color:red'>画像が未設定です</span>";
+    return;
+  }
+  if (!calib.p1 || !calib.p2) {
+    outputEl.innerHTML = "<span style='color:red'>キャリブ点1/2が未設定です</span>";
+    return;
+  }
+  if (nowX === null) {
+    outputEl.innerHTML = "<span style='color:red'>Now位置が未設定です</span>";
+    return;
+  }
+  if (actionLine.length < 2) {
+    outputEl.innerHTML = "<span style='color:red'>Action Line（2点）が未設定です</span>";
+    return;
+  }
+  if (safetyLine.length < 2) {
+    outputEl.innerHTML = "<span style='color:red'>Safety Line（2点）が未設定です</span>";
+    return;
+  }
+
+  const side = document.getElementById("side").value;
+  const buf  = parseFloat(document.getElementById("buf").value);
+  const bufS = parseFloat(document.getElementById("bufS").value);
+  const Rmax = parseFloat(document.getElementById("rmax").value);
+  const k    = parseFloat(document.getElementById("k").value);
+
+  if ([buf, bufS, Rmax, k].some(v => Number.isNaN(v))) {
+    outputEl.innerHTML = "<span style='color:red'>buf/bufS/Rmax/TP倍率の数値が不正です</span>";
+    return;
+  }
+
+  const actionPx = linePriceAtX(actionLine, nowX);
+  const safetyPx = linePriceAtX(safetyLine, nowX);
+  if ([actionPx, safetyPx].some(v => Number.isNaN(v) || !Number.isFinite(v))) {
+    outputEl.innerHTML = "<span style='color:red'>ライン価格の計算に失敗しました（点の選択が不正の可能性）</span>";
+    return;
+  }
+
+  let entry, stop;
+  if (side === "long") {
+    entry = actionPx + buf;
+    stop  = safetyPx - bufS;
+  } else {
+    entry = actionPx - buf;
+    stop  = safetyPx + bufS;
+  }
+
+  const R = Math.abs(entry - stop);
+  const tp = (side === "long") ? (entry + R * k) : (entry - R * k);
+  const riskOK = (R <= Rmax);
+
+  // 任意：現在値が入っていればブレイク達成判定も表示
+  const pxInput = document.getElementById("pxNow").value;
+  const pxNow = pxInput ? parseFloat(pxInput) : null;
+  let trig = "（現在値未入力）";
+  if (pxNow !== null && !Number.isNaN(pxNow)) {
+    if (side === "long") {
+      trig = (pxNow >= entry) ? "ブレイク成立（Entry以上）" : "未ブレイク（Entry未満）";
+    } else {
+      trig = (pxNow <= entry) ? "ブレイク成立（Entry以下）" : "未ブレイク（Entry超）";
+    }
+  }
+
+  // ===== チャートに描画（画像→ライン→水平線） =====
+  redrawBase();
+  drawHLine(entry, "lime", "Entry");
+  drawHLine(stop,  "red",  "Stop");
+  drawHLine(tp,    "blue", "TP");
+
+  outputEl.innerHTML = `
+<b>計算結果</b>
+Direction: ${side.toUpperCase()}
+Now判定: ${trig}
+
+Entry: ${entry.toFixed(3)}
+Stop : ${stop.toFixed(3)}
+TP(${k}R): ${tp.toFixed(3)}
+
+R: ${R.toFixed(3)}
+Rmax: ${Rmax.toFixed(3)}
+判定: <b style="color:${riskOK ? "green" : "red"}">${riskOK ? "OK" : "NG（R超過）"}</b>
+`.trim();
 });
 
-// リセット：状態を全部消して、画像を再描画
+/* ===== リセット ===== */
 document.getElementById("reset").addEventListener("click", () => {
-  // 状態リセット
+  resetState(true);
+});
+
+function resetState(resetInputs) {
   mode = null;
   calib = { p1: null, p2: null };
   nowX = null;
   actionLine = [];
   safetyLine = [];
+  outputEl.textContent = "";
 
-  // 入力欄リセット
-  document.getElementById("pxNow").value = "";
-  document.getElementById("buf").value = "0.05";
-  document.getElementById("bufS").value = "0.05";
-  document.getElementById("rmax").value = "0.30";
-  document.getElementById("k").value = "1.5";
+  if (resetInputs) {
+    document.getElementById("pxNow").value = "";
+    document.getElementById("buf").value = "0.05";
+    document.getElementById("bufS").value = "0.05";
+    document.getElementById("rmax").value = "0.30";
+    document.getElementById("k").value = "1.5";
+  }
 
-  // 表示リセット
-  document.getElementById("output").textContent = "";
   statusEl.textContent = "リセットしました。①キャリブ点1からやり直してください。";
 
-  // 画像が読み込み済みなら、画像だけ再描画（点・線を消す）
   if (img && img.src) {
     canvas.width = img.width;
     canvas.height = img.height;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0);
   } else {
-    // 画像がない場合は真っ白に
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
-});
-
+}
 </script>
+
 </body>
 </html>
