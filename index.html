@@ -205,12 +205,40 @@ canvas {
     </div>
   </div>
 </div>
-
 <script>
-/* ===== ここに既存の JS ロジックをそのまま貼ってください =====
-   （今回の修正は CSS/HTML のみ。JSは変更不要）
-*/
-</script>
+/* ===== Canvas & Image Load ===== */
 
+const fileInput = document.getElementById("fileInput");
+const canvas = document.getElementById("cv");
+const ctx = canvas.getContext("2d");
+const statusEl = document.getElementById("status");
+
+let img = new Image();
+
+fileInput.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    img.onload = () => {
+      // ★超重要：canvas実サイズを画像に合わせる
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+
+      statusEl.textContent =
+        "画像を読み込みました。①キャリブ点1から進めてください。";
+    };
+
+    img.src = reader.result;
+  };
+
+  reader.readAsDataURL(file);
+});
+</script>
 </body>
 </html>
