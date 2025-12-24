@@ -239,6 +239,112 @@ fileInput.addEventListener("change", (e) => {
 
   reader.readAsDataURL(file);
 });
+  // ===== 操作モード =====
+let mode = null; // 'cal1','cal2','now','al','sl','px'
+
+// ===== 状態 =====
+let calib = { p1: null, p2: null };
+let nowX = null;
+let actionLine = [];
+let safetyLine = [];
+document.getElementById("cal1").onclick = () => {
+  mode = "cal1";
+  statusEl.textContent = "① キャリブ点1：価格軸の点をクリックしてください";
+};
+
+document.getElementById("cal2").onclick = () => {
+  mode = "cal2";
+  statusEl.textContent = "① キャリブ点2：別の価格軸点をクリックしてください";
+};
+
+document.getElementById("nowX").onclick = () => {
+  mode = "now";
+  statusEl.textContent = "② Now位置：最新足のX位置をクリックしてください";
+};
+
+document.getElementById("al").onclick = () => {
+  mode = "al";
+  actionLine = [];
+  statusEl.textContent = "③ Action Line：2点クリックしてください";
+};
+
+document.getElementById("sl").onclick = () => {
+  mode = "sl";
+  safetyLine = [];
+  statusEl.textContent = "④ Safety Line：2点クリックしてください";
+};
+
+document.getElementById("px").onclick = () => {
+  mode = "px";
+  statusEl.textContent = "⑤ 現在値：終値付近をクリックしてください";
+};
+canvas.addEventListener("click", (e) => {
+  if (!mode) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+  ctx.fillStyle = "yellow";
+  ctx.beginPath();
+  ctx.arc(x, y, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (mode === "cal1") {
+    const price = prompt("キャリブ点1の価格を入力");
+    if (price !== null) calib.p1 = { x, y, price: Number(price) };
+    statusEl.textContent = "キャリブ点1を設定しました";
+    mode = null;
+  }
+
+  else if (mode === "cal2") {
+    const price = prompt("キャリブ点2の価格を入力");
+    if (price !== null) calib.p2 = { x, y, price: Number(price) };
+    statusEl.textContent = "キャリブ点2を設定しました";
+    mode = null;
+  }
+
+  else if (mode === "now") {
+    nowX = x;
+    statusEl.textContent = "Now位置を設定しました";
+    mode = null;
+  }
+
+  else if (mode === "al") {
+    actionLine.push({ x, y });
+    if (actionLine.length === 2) {
+      ctx.strokeStyle = "cyan";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(actionLine[0].x, actionLine[0].y);
+      ctx.lineTo(actionLine[1].x, actionLine[1].y);
+      ctx.stroke();
+      statusEl.textContent = "Action Line を設定しました";
+      mode = null;
+    }
+  }
+
+  else if (mode === "sl") {
+    safetyLine.push({ x, y });
+    if (safetyLine.length === 2) {
+      ctx.strokeStyle = "orange";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(safetyLine[0].x, safetyLine[0].y);
+      ctx.lineTo(safetyLine[1].x, safetyLine[1].y);
+      ctx.stroke();
+      statusEl.textContent = "Safety Line を設定しました";
+      mode = null;
+    }
+  }
+
+  else if (mode === "px") {
+    document.getElementById("pxNow").value = "(クリック値)";
+    statusEl.textContent = "現在値を取得しました";
+    mode = null;
+  }
+});
+
 </script>
 </body>
 </html>
