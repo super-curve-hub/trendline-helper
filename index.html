@@ -4,509 +4,156 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trendline Break Helper (4H → 15M)</title>
-
 <style>
-/* ====== 安全装置 ====== */
-*,
-*::before,
-*::after { box-sizing: border-box; }
-
-/* ====== 全体 ====== */
-body{
-  font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
-  margin:16px;
-  background:#fff;
-  color:#111;
-}
-h1{ font-size:20px; margin-bottom:8px; }
-.note{ font-size:12px; color:#555; margin-bottom:12px; }
-
-/* ====== レイアウト ====== */
-.container{
-  display:grid;
-  grid-template-columns:1fr;
-  gap:16px;
-}
-@media (min-width:900px){
-  .container{ grid-template-columns:420px 1fr; align-items:start; }
-}
-.panel{
-  border:1px solid #ddd;
-  border-radius:10px;
-  padding:12px;
-}
-
-/* ====== フォーム行 ====== */
-.row{
-  display:grid;
-  grid-template-columns:1fr;
-  gap:6px;
-  margin-bottom:12px;
-}
-@media (min-width:768px){
-  .row{ grid-template-columns:160px 1fr; align-items:center; gap:8px; }
-}
-.label{ font-size:13px; font-weight:600; white-space:nowrap; }
-
-/* ====== 入力 ====== */
-input, select, button{
-  width:100%;
-  min-height:40px;
-  padding:6px 8px;
-  font-size:14px;
-}
-button{ cursor:pointer; }
-
-/* ====== ボタン群 ====== */
-.buttons{
-  display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
-  gap:8px;
-  margin-bottom:12px;
-}
-
-/* ====== Canvas ====== */
-canvas{
-  width:100%;
-  border:1px solid #ddd;
-  border-radius:10px;
-  touch-action:none;
-}
-
-/* ====== 出力 ====== */
-.output{
-  margin-top:12px;
-  border:1px solid #ddd;
-  border-radius:10px;
-  padding:10px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size:13px;
-  white-space:pre-wrap;
-}
-.status{ font-size:12px; color:#555; margin-bottom:6px; }
+*{box-sizing:border-box}
+body{font-family:system-ui,-apple-system,"Noto Sans JP",sans-serif;margin:12px;background:#fff;color:#111}
+h1{font-size:18px;margin:6px 0}
+.note{font-size:12px;color:#555;margin-bottom:10px}
+.container{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:900px){.container{grid-template-columns:420px 1fr}}
+.panel{border:1px solid #ddd;border-radius:10px;padding:10px}
+.row{display:grid;grid-template-columns:1fr;gap:6px;margin-bottom:10px}
+@media(min-width:768px){.row{grid-template-columns:160px 1fr}}
+.label{font-size:13px;font-weight:600}
+input,select,button{width:100%;min-height:38px;padding:6px 8px;font-size:14px}
+.buttons{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:10px}
+canvas{width:100%;border:1px solid #ddd;border-radius:10px;touch-action:none}
+.output{margin-top:10px;border:1px solid #ddd;border-radius:10px;padding:10px;font-family:ui-monospace,monospace;font-size:13px;white-space:pre-wrap}
+.status{font-size:12px;color:#555;margin-bottom:6px}
 </style>
 </head>
-
 <body>
-<h1>Trendline Break Helper（4Hでライン確定 → 15Mで執行）</h1>
-<div class="note">※ 教育・検証補助用ツールです。売買判断の最終責任は利用者にあります。</div>
+<h1>Trendline Break Helper（4Hで確定 → 15Mで執行）</h1>
+<div class="note">教育・検証補助用。最終判断は利用者責任。</div>
 
 <div class="container">
-  <!-- ===== 左パネル ===== -->
-  <div class="panel">
-    <div class="row">
-      <div class="label">チャート画像</div>
-      <input type="file" id="fileInput" accept="image/*">
-    </div>
+<div class="panel">
+<div class="row"><div class="label">チャート画像</div><input type="file" id="fileInput" accept="image/*"></div>
+<div class="row"><div class="label">方向</div>
+<select id="side"><option value="short">Short（下抜け）</option><option value="long">Long（上抜け）</option></select></div>
+<div class="row"><div class="label">buf</div><input type="number" id="buf" step="0.01" value="0.05"></div>
+<div class="row"><div class="label">bufS</div><input type="number" id="bufS" step="0.01" value="0.05"></div>
+<div class="row"><div class="label">Rmax</div><input type="number" id="rmax" step="0.01" value="0.30"></div>
+<div class="row"><div class="label">TP倍率</div><input type="number" id="k" step="0.1" value="1.5"></div>
 
-    <div class="row">
-      <div class="label">方向</div>
-      <select id="side">
-        <option value="long">Long（上抜け）</option>
-        <option value="short">Short（下抜け）</option>
-      </select>
-    </div>
+<div class="row"><div class="label">15M pullbackTol</div>
+<input type="number" id="pullbackTol" step="0.01" value="0.10"></div>
+<div class="row"><div class="label">15M chaseMax</div>
+<input type="number" id="chaseMax" step="0.01" value="0.05"></div>
 
-    <div class="row">
-      <div class="label">buf（ブレイク判定）</div>
-      <input type="number" id="buf" step="0.01" value="0.05">
-    </div>
+<div class="row"><div class="label">現在値</div><input type="number" id="pxNow" step="0.001"></div>
 
-    <div class="row">
-      <div class="label">bufS（ストップ余裕）</div>
-      <input type="number" id="bufS" step="0.01" value="0.05">
-    </div>
+<div class="buttons">
+<button id="cal1">① キャリブ1</button>
+<button id="cal2">① キャリブ2</button>
+<button id="nowX">② Now</button>
+<button id="al">③ Action</button>
+<button id="sl">④ Safety</button>
+<button id="px">⑤ 現在値</button>
+</div>
+<div class="buttons">
+<button id="calc">計算</button>
+<button id="reset">リセット</button>
+</div>
+</div>
 
-    <div class="row">
-      <div class="label">Rmax（低リスク上限）</div>
-      <input type="number" id="rmax" step="0.01" value="0.30">
-    </div>
-
-    <div class="row">
-      <div class="label">TP倍率（主）</div>
-      <input type="number" id="k" step="0.1" value="1.5">
-    </div>
-
-    <div class="row">
-      <div class="label">現在値（任意）</div>
-      <input type="number" id="pxNow" step="0.001" placeholder="クリックで取得 or 手入力">
-    </div>
-
-    <div class="buttons">
-      <button id="cal1">① キャリブ点1</button>
-      <button id="cal2">① キャリブ点2</button>
-      <button id="nowX">② Now位置</button>
-      <button id="al">③ Action Line</button>
-      <button id="sl">④ Safety Line</button>
-      <button id="px">⑤ 現在値クリック</button>
-    </div>
-
-    <div class="buttons">
-      <button id="calc">計算</button>
-      <button id="reset">リセット</button>
-    </div>
-
-    <div class="note">
-      手順：<br>
-      ① 価格軸の2点をクリックして価格入力<br>
-      ② 最新足のX位置をクリック<br>
-      ③ Action Line（2点）<br>
-      ④ Safety Line（2点）<br>
-      ⑤ 任意：現在値
-    </div>
-  </div>
-
-  <!-- ===== 右側 ===== -->
-  <div>
-    <canvas id="cv" width="1200" height="800"></canvas>
-
-    <div class="panel" style="margin-top:12px;">
-      <div class="status" id="status">画像をアップロードしてください。</div>
-      <div class="output" id="output"></div>
-    </div>
-  </div>
+<div>
+<canvas id="cv" width="1200" height="800"></canvas>
+<div class="panel" style="margin-top:10px">
+<div class="status" id="status">画像をアップロードしてください。</div>
+<div class="output" id="output"></div>
+</div>
+</div>
 </div>
 
 <script>
-/* ===== Canvas & Image Load ===== */
-const fileInput = document.getElementById("fileInput");
-const canvas = document.getElementById("cv");
-const ctx = canvas.getContext("2d");
-const statusEl = document.getElementById("status");
-const outputEl = document.getElementById("output");
+const canvas=document.getElementById("cv"),ctx=canvas.getContext("2d");
+const statusEl=document.getElementById("status"),out=document.getElementById("output");
+let img=new Image();
+let mode=null,calib={p1:null,p2:null},nowX=null,al=[],sl=[];
 
-let img = new Image();
+fileInput.onchange=e=>{
+ const f=e.target.files[0]; if(!f) return;
+ const r=new FileReader();
+ r.onload=()=>{img.onload=()=>{canvas.width=img.width;canvas.height=img.height;ctx.drawImage(img,0,0);reset(false)};img.src=r.result};
+ r.readAsDataURL(f);
+};
 
-fileInput.addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = () => {
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
-
-      // 状態もリセット（画像が変わったら前提が崩れる）
-      resetState(false);
-
-      statusEl.textContent = "画像を読み込みました。①キャリブ点1から進めてください。";
-    };
-    img.src = reader.result;
-  };
-  reader.readAsDataURL(file);
-});
-
-/* ===== 操作モード & 状態 ===== */
-let mode = null; // 'cal1','cal2','now','al','sl','px'
-let calib = { p1: null, p2: null };   // {x,y,price}
-let nowX = null;                      // number
-let actionLine = [];                  // [{x,y},{x,y}]
-let safetyLine = [];                  // [{x,y},{x,y}]
-
-/* ===== ボタン：モード切替 ===== */
-document.getElementById("cal1").addEventListener("click", () => {
-  mode = "cal1";
-  statusEl.textContent = "① キャリブ点1：価格軸の点をクリック → 価格を入力";
-});
-document.getElementById("cal2").addEventListener("click", () => {
-  mode = "cal2";
-  statusEl.textContent = "① キャリブ点2：別の価格軸点をクリック → 価格を入力";
-});
-document.getElementById("nowX").addEventListener("click", () => {
-  mode = "now";
-  statusEl.textContent = "② Now位置：最新足のX位置をクリック";
-});
-document.getElementById("al").addEventListener("click", () => {
-  mode = "al";
-  actionLine = [];
-  statusEl.textContent = "③ Action Line：2点クリック（トレンドライン）";
-});
-document.getElementById("sl").addEventListener("click", () => {
-  mode = "sl";
-  safetyLine = [];
-  statusEl.textContent = "④ Safety Line：2点クリック（損切り基準）";
-});
-document.getElementById("px").addEventListener("click", () => {
-  mode = "px";
-  statusEl.textContent = "⑤ 現在値：終値付近をクリック（価格目盛りの位置推奨）";
-});
-
-/* ===== 価格変換（キャリブ必須） ===== */
-function getYToPrice() {
-  if (!calib.p1 || !calib.p2) return null;
-  const denom = (calib.p2.y - calib.p1.y);
-  if (denom === 0) return null;
-  const a = (calib.p2.price - calib.p1.price) / denom;
-  const b = calib.p1.price - a * calib.p1.y;
-  return (y) => a * y + b;
-}
-function yToPrice(y) {
-  const f = getYToPrice();
-  if (!f) return NaN;
-  return f(y);
-}
-function linePriceAtX(line2pts, x) {
-  const f = getYToPrice();
-  if (!f) return NaN;
-
-  const p1 = line2pts[0], p2 = line2pts[1];
-  const dx = (p2.x - p1.x);
-  if (dx === 0) return NaN;
-
-  const m = (p2.y - p1.y) / dx;
-  const c = p1.y - m * p1.x;
-  const y = m * x + c;
-  return f(y);
+function reset(all=true){
+ mode=null;calib={p1:null,p2:null};nowX=null;al=[];sl=[];out.textContent="";
+ if(all){pxNow.value="";}
+ if(img.src){ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);}
+ statusEl.textContent="①からやり直してください";
 }
 
-/* ===== 再描画（画像＋ライン） ===== */
-function redrawBase() {
-  if (!img || !img.src) return;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(img, 0, 0);
-
-  if (actionLine.length === 2) {
-    ctx.strokeStyle = "cyan";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(actionLine[0].x, actionLine[0].y);
-    ctx.lineTo(actionLine[1].x, actionLine[1].y);
-    ctx.stroke();
-  }
-  if (safetyLine.length === 2) {
-    ctx.strokeStyle = "orange";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(safetyLine[0].x, safetyLine[0].y);
-    ctx.lineTo(safetyLine[1].x, safetyLine[1].y);
-    ctx.stroke();
-  }
-}
-
-/* ===== 水平線描画（price -> y） ===== */
-function drawHLine(price, color, label) {
-  if (!calib.p1 || !calib.p2) return;
-
-  const denom = (calib.p2.y - calib.p1.y);
-  if (denom === 0) return;
-
-  const a = (calib.p2.price - calib.p1.price) / denom;
-  const b = calib.p1.price - a * calib.p1.y;
-  const y = (price - b) / a;
-
-  if (!Number.isFinite(y)) return;
-
-  ctx.save();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 4]);
-  ctx.beginPath();
-  ctx.moveTo(0, y);
-  ctx.lineTo(canvas.width, y);
-  ctx.stroke();
-
-  ctx.fillStyle = color;
-  ctx.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
-  ctx.fillText(`${label}: ${price.toFixed(3)}`, 6, y - 6);
-  ctx.restore();
-}
-
-/* ===== Canvas Click：点取得 ===== */
-canvas.addEventListener("click", (e) => {
-  if (!mode) return;
-  if (!img || !img.src) {
-    statusEl.textContent = "先に画像をアップロードしてください。";
-    return;
-  }
-
-  const rect = canvas.getBoundingClientRect();
-  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-  const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-
-  // 点の可視化
-  ctx.fillStyle = "yellow";
-  ctx.beginPath();
-  ctx.arc(x, y, 5, 0, Math.PI * 2);
-  ctx.fill();
-
-  if (mode === "cal1") {
-    const price = prompt("キャリブ点1の価格を入力（例：155.916）");
-    if (price !== null && price !== "" && !Number.isNaN(Number(price))) {
-      calib.p1 = { x, y, price: Number(price) };
-      statusEl.textContent = "キャリブ点1を設定しました";
-    } else {
-      statusEl.textContent = "価格が不正だったため、キャリブ点1は未設定です";
-    }
-    mode = null;
-
-  } else if (mode === "cal2") {
-    const price = prompt("キャリブ点2の価格を入力（例：156.680）");
-    if (price !== null && price !== "" && !Number.isNaN(Number(price))) {
-      calib.p2 = { x, y, price: Number(price) };
-      statusEl.textContent = "キャリブ点2を設定しました";
-    } else {
-      statusEl.textContent = "価格が不正だったため、キャリブ点2は未設定です";
-    }
-    mode = null;
-
-  } else if (mode === "now") {
-    nowX = x;
-    statusEl.textContent = "Now位置を設定しました";
-    mode = null;
-
-  } else if (mode === "al") {
-    actionLine.push({ x, y });
-    if (actionLine.length === 2) {
-      redrawBase(); // 画像＋既存ライン再描画
-      statusEl.textContent = "Action Line を設定しました";
-      mode = null;
-    }
-
-  } else if (mode === "sl") {
-    safetyLine.push({ x, y });
-    if (safetyLine.length === 2) {
-      redrawBase();
-      statusEl.textContent = "Safety Line を設定しました";
-      mode = null;
-    }
-
-  } else if (mode === "px") {
-    if (!calib.p1 || !calib.p2) {
-      statusEl.textContent = "現在値クリックには、先にキャリブ点1/2が必要です。";
-      mode = null;
-      return;
-    }
-    const px = yToPrice(y);
-    document.getElementById("pxNow").value = px.toFixed(3);
-    statusEl.textContent = "現在値を設定しました（クリックしたYを価格換算）";
-    mode = null;
-  }
+["cal1","cal2","nowX","al","sl","px"].forEach(id=>{
+ document.getElementById(id).onclick=()=>{mode=id};
 });
 
-/* ===== 計算（完成形） ===== */
-document.getElementById("calc").addEventListener("click", () => {
-  if (!img || !img.src) {
-    outputEl.innerHTML = "<span style='color:red'>画像が未設定です</span>";
-    return;
-  }
-  if (!calib.p1 || !calib.p2) {
-    outputEl.innerHTML = "<span style='color:red'>キャリブ点1/2が未設定です</span>";
-    return;
-  }
-  if (nowX === null) {
-    outputEl.innerHTML = "<span style='color:red'>Now位置が未設定です</span>";
-    return;
-  }
-  if (actionLine.length < 2) {
-    outputEl.innerHTML = "<span style='color:red'>Action Line（2点）が未設定です</span>";
-    return;
-  }
-  if (safetyLine.length < 2) {
-    outputEl.innerHTML = "<span style='color:red'>Safety Line（2点）が未設定です</span>";
-    return;
-  }
+canvas.onclick=e=>{
+ if(!mode||!img.src) return;
+ const r=canvas.getBoundingClientRect();
+ const x=(e.clientX-r.left)*canvas.width/r.width;
+ const y=(e.clientY-r.top)*canvas.height/r.height;
+ ctx.fillStyle="yellow";ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill();
 
-  const side = document.getElementById("side").value;
-  const buf  = parseFloat(document.getElementById("buf").value);
-  const bufS = parseFloat(document.getElementById("bufS").value);
-  const Rmax = parseFloat(document.getElementById("rmax").value);
-  const k    = parseFloat(document.getElementById("k").value);
+ if(mode==="cal1"||mode==="cal2"){
+  const p=prompt("価格入力"); if(!p) return;
+  calib[mode==="cal1"?"p1":"p2"]={x,y,price:+p}; mode=null;
+ }
+ else if(mode==="nowX"){nowX=x;mode=null}
+ else if(mode==="al"){al.push({x,y});if(al.length===2){drawLine(al,"cyan");mode=null}}
+ else if(mode==="sl"){sl.push({x,y});if(sl.length===2){drawLine(sl,"orange");mode=null}}
+ else if(mode==="px"){pxNow.value=priceAtY(y).toFixed(3);mode=null}
+};
 
-  if ([buf, bufS, Rmax, k].some(v => Number.isNaN(v))) {
-    outputEl.innerHTML = "<span style='color:red'>buf/bufS/Rmax/TP倍率の数値が不正です</span>";
-    return;
-  }
+function drawLine(pts,color){ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);ctx.lineTo(pts[1].x,pts[1].y);ctx.stroke()}
+function priceAtY(y){const a=(calib.p2.price-calib.p1.price)/(calib.p2.y-calib.p1.y);return calib.p1.price+a*(y-calib.p1.y)}
+function linePxAtX(pts,x){const m=(pts[1].y-pts[0].y)/(pts[1].x-pts[0].x);const y=m*(x-pts[0].x)+pts[0].y;return priceAtY(y)}
 
-  const actionPx = linePriceAtX(actionLine, nowX);
-  const safetyPx = linePriceAtX(safetyLine, nowX);
-  if ([actionPx, safetyPx].some(v => Number.isNaN(v) || !Number.isFinite(v))) {
-    outputEl.innerHTML = "<span style='color:red'>ライン価格の計算に失敗しました（点の選択が不正の可能性）</span>";
-    return;
-  }
-
-  let entry, stop;
-  if (side === "long") {
-    entry = actionPx + buf;
-    stop  = safetyPx - bufS;
-  } else {
-    entry = actionPx - buf;
-    stop  = safetyPx + bufS;
-  }
-
-  const R = Math.abs(entry - stop);
-  const tp = (side === "long") ? (entry + R * k) : (entry - R * k);
-  const riskOK = (R <= Rmax);
-
-  // 任意：現在値が入っていればブレイク達成判定も表示
-  const pxInput = document.getElementById("pxNow").value;
-  const pxNow = pxInput ? parseFloat(pxInput) : null;
-  let trig = "（現在値未入力）";
-  if (pxNow !== null && !Number.isNaN(pxNow)) {
-    if (side === "long") {
-      trig = (pxNow >= entry) ? "ブレイク成立（Entry以上）" : "未ブレイク（Entry未満）";
-    } else {
-      trig = (pxNow <= entry) ? "ブレイク成立（Entry以下）" : "未ブレイク（Entry超）";
-    }
-  }
-
-  // ===== チャートに描画（画像→ライン→水平線） =====
-  redrawBase();
-  drawHLine(entry, "lime", "Entry");
-  drawHLine(stop,  "red",  "Stop");
-  drawHLine(tp,    "blue", "TP");
-
-  outputEl.innerHTML = `
-<b>計算結果</b>
-Direction: ${side.toUpperCase()}
-Now判定: ${trig}
-
-Entry: ${entry.toFixed(3)}
-Stop : ${stop.toFixed(3)}
-TP(${k}R): ${tp.toFixed(3)}
-
-R: ${R.toFixed(3)}
-Rmax: ${Rmax.toFixed(3)}
-判定: <b style="color:${riskOK ? "green" : "red"}">${riskOK ? "OK" : "NG（R超過）"}</b>
-`.trim();
-});
-
-/* ===== リセット ===== */
-document.getElementById("reset").addEventListener("click", () => {
-  resetState(true);
-});
-
-function resetState(resetInputs) {
-  mode = null;
-  calib = { p1: null, p2: null };
-  nowX = null;
-  actionLine = [];
-  safetyLine = [];
-  outputEl.textContent = "";
-
-  if (resetInputs) {
-    document.getElementById("pxNow").value = "";
-    document.getElementById("buf").value = "0.05";
-    document.getElementById("bufS").value = "0.05";
-    document.getElementById("rmax").value = "0.30";
-    document.getElementById("k").value = "1.5";
-  }
-
-  statusEl.textContent = "リセットしました。①キャリブ点1からやり直してください。";
-
-  if (img && img.src) {
-    canvas.width = img.width;
-    canvas.height = img.height;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0);
-  } else {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  }
+function drawZone(y,color,label){
+ ctx.fillStyle=color;ctx.globalAlpha=0.15;ctx.fillRect(0,y-6,canvas.width,12);
+ ctx.globalAlpha=1;ctx.strokeStyle=color;ctx.lineWidth=4;
+ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();
+ ctx.fillStyle=color;ctx.fillText(label,10,y-8);
 }
+
+calc.onclick=()=>{
+ if(!calib.p1||!calib.p2||nowX===null||al.length<2||sl.length<2){out.textContent="未設定があります";return}
+ const side=document.getElementById("side").value;
+ const bufv=+buf.value,bufSv=+bufS.value,kv=+k.value;
+ const action=linePxAtX(al,nowX),safety=linePxAtX(sl,nowX);
+ if(side==="short"&&safety<=action){out.textContent="SafetyはActionより上";return}
+ if(side==="long"&&safety>=action){out.textContent="SafetyはActionより下";return}
+
+ let entry=side==="short"?action-bufv:action+bufv;
+ let stop =side==="short"?safety+bufSv:safety-bufSv;
+ let R=Math.abs(entry-stop);
+ let tp=side==="short"?entry-R*kv:entry+R*kv;
+
+ const f=y=> (calib.p2.y-calib.p1.y)*(y-calib.p1.price)/(calib.p2.price-calib.p1.price)+calib.p1.y;
+ drawZone(f(entry),"red","ENTRY");
+ drawZone(f(stop),"orange","STOP");
+ drawZone(f(tp),"green","TP");
+
+ let px=+pxNow.value;
+ let exec="現在値未入力";
+ if(px){
+  const pull=+pullbackTol.value, chase=+chaseMax.value;
+  if(side==="short"){
+    if(px<entry && entry-px<=chase) exec="15M 成行";
+    else if(px>entry && px-entry<=pull) exec="15M 戻り指値";
+    else exec="見送り";
+  }else{
+    if(px>entry && px-entry<=chase) exec="15M 成行";
+    else if(px<entry && entry-px<=pull) exec="15M 押し目指値";
+    else exec="見送り";
+  }
+ }
+
+ out.textContent=`Entry:${entry.toFixed(3)}\nStop:${stop.toFixed(3)}\nTP:${tp.toFixed(3)}\n15M判断:${exec}`;
+};
+reset.onclick=()=>reset(true);
 </script>
-
 </body>
 </html>
